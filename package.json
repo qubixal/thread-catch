@@ -1,0 +1,15 @@
+{
+  "name": "thread-catch-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=thread-catch",
+    "test": "npm run test --workspace=thread-catch"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

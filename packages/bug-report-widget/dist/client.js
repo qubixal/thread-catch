@@ -1,0 +1,196 @@
+"use client";
+
+// src/client.tsx
+import { useEffect, useRef, useState } from "react";
+
+// src/shared.ts
+var severityOptions = ["low", "medium", "high", "critical"];
+
+// src/client.tsx
+import { jsx, jsxs } from "react/jsx-runtime";
+var style = `
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+@keyframes brw-slideIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes brw-fadeIn{from{opacity:0}to{opacity:1}}
+.brw-root{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;color:#dbdee1;line-height:1.35}
+.brw-launch{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:48px;height:48px;border:0;border-radius:50%;background:#5865f2;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .15s}
+.brw-launch:hover{background:#4752c4;transform:scale(1.05)}.brw-launch:active{transform:scale(.97)}
+.brw-launch:focus-visible,.brw-panel button:focus-visible,.brw-panel input:focus-visible,.brw-panel textarea:focus-visible,.brw-panel select:focus-visible{outline:2px solid #5865f2;outline-offset:2px}
+.brw-bug{position:relative;width:22px;height:22px}.brw-bug::before{content:"";position:absolute;left:5px;top:2px;width:12px;height:14px;background:#fff;border-radius:6px 6px 4px 4px}.brw-bug::after{content:"";position:absolute;left:8px;top:0;width:6px;height:5px;background:#fff;border-radius:50%}
+.brw-bug-legs{position:absolute;top:4px;left:2px;width:18px;height:12px}.brw-bug-leg{position:absolute;width:5px;height:2px;background:#fff;border-radius:1px}.brw-bug-leg:nth-child(1){top:0;left:0;transform:rotate(-45deg)}.brw-bug-leg:nth-child(2){top:4px;left:-1px;transform:rotate(0deg)}.brw-bug-leg:nth-child(3){top:8px;left:0;transform:rotate(45deg)}.brw-bug-leg:nth-child(4){top:0;right:0;transform:rotate(45deg)}.brw-bug-leg:nth-child(5){top:4px;right:-1px;transform:rotate(0deg)}.brw-bug-leg:nth-child(6){top:8px;right:0;transform:rotate(-45deg)}
+.brw-panel{position:fixed;right:20px;bottom:80px;z-index:2147483000;width:min(372px,calc(100vw - 28px));overflow:hidden;border:1px solid #3f4147;border-radius:8px;background:#2b2d31;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:brw-slideIn .2s ease-out}
+.brw-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:#1e1f22;border-bottom:2px solid #5865f2;cursor:grab;touch-action:none}.brw-head:active{cursor:grabbing}.brw-head strong{font-size:14px;font-weight:700;color:#f2f3f5}.brw-icon{width:28px;height:28px;border:0;border-radius:4px;background:transparent;color:#b5bac1;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s}.brw-icon:hover{color:#f2f3f5;background:rgba(255,255,255,.08)}
+.brw-form{display:grid;gap:11px;padding:14px}.brw-label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#b5bac1;text-transform:uppercase;letter-spacing:.3px}.brw-input,.brw-textarea,.brw-select{box-sizing:border-box;width:100%;border:1px solid #3f4147;border-radius:4px;background:#1e1f22;color:#dbdee1;font:inherit;font-size:14px;padding:8px 10px;transition:border-color .15s}.brw-input::placeholder,.brw-textarea::placeholder{color:#6d6f78}.brw-input:focus,.brw-textarea:focus,.brw-select:focus{border-color:#5865f2;outline:none;box-shadow:0 0 0 1px #5865f2}.brw-textarea{min-height:96px;resize:vertical}.brw-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.brw-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b5bac1' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
+.brw-selector{display:flex;gap:7px;align-items:center}.brw-selector code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;border:1px solid #3f4147;border-radius:4px;background:#1e1f22;padding:7px 8px;color:#b5bac1;font-size:11px;font-family:"Consolas","Andale Mono","Lucida Console",monospace}.brw-secondary,.brw-submit{border:0;border-radius:4px;padding:9px 11px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s,opacity .15s}.brw-secondary{background:#4e5058;color:#dbdee1}.brw-secondary:hover{background:#6d6f78;color:#fff}.brw-submit{background:#5865f2;color:#fff}.brw-submit:hover{background:#4752c4}.brw-submit:disabled,.brw-secondary:disabled{cursor:wait;opacity:.5}.brw-status{margin:0;font-size:12px;color:#b5bac1}.brw-status[data-error="true"]{color:#ed4245}.brw-cancel{color:#5865f2;background:transparent;border:0;padding:0;font:inherit;font-size:12px;text-align:left;cursor:pointer;transition:color .15s}.brw-cancel:hover{color:#7289da}
+.brw-severity{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;flex-shrink:0}.brw-severity-low{background:#57f287}.brw-severity-medium{background:#fee75c}.brw-severity-high{background:#f0b232}.brw-severity-critical{background:#ed4245}
+.brw-highlight{position:fixed;z-index:2147482999;border:2px solid #5865f2;background:rgba(88,101,242,.12);pointer-events:none}.brw-picking{cursor:crosshair!important}
+@media(max-width:480px){.brw-panel{right:14px;bottom:76px}.brw-launch{right:14px;bottom:14px}}
+`;
+function escapeIdentifier(value) {
+  if (typeof CSS !== "undefined" && CSS.escape) return CSS.escape(value);
+  return value.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+}
+function selectorFor(element) {
+  if (element.id) return `#${escapeIdentifier(element.id)}`;
+  const parts = [];
+  let node = element;
+  while (node && node !== document.body && parts.length < 5) {
+    const tag = node.tagName.toLowerCase();
+    const stableClass = Array.from(node.classList).find((item) => /^[a-z][a-z0-9_-]{1,40}$/i.test(item));
+    if (stableClass) {
+      parts.unshift(`${tag}.${escapeIdentifier(stableClass)}`);
+      break;
+    }
+    const siblings = node.parentElement ? Array.from(node.parentElement.children).filter((child) => child.tagName === node.tagName) : [];
+    const index = siblings.indexOf(node) + 1;
+    parts.unshift(`${tag}:nth-of-type(${index})`);
+    node = node.parentElement;
+  }
+  return parts.join(" > ");
+}
+function BugReportWidget({ endpoint = "/api/bug-report", productName = "Bug report" }) {
+  const rootRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [severity, setSeverity] = useState("medium");
+  const [selector, setSelector] = useState("");
+  const [selecting, setSelecting] = useState(false);
+  const [hoverBox, setHoverBox] = useState(null);
+  const [position, setPosition] = useState(null);
+  const [drag, setDrag] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    if (!selecting) return;
+    const move = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || rootRef.current?.contains(target)) return;
+      const rect = target.getBoundingClientRect();
+      setHoverBox({ left: rect.left, top: rect.top, width: rect.width, height: rect.height });
+    };
+    const choose = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || rootRef.current?.contains(target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setSelector(selectorFor(target));
+      setSelecting(false);
+      setHoverBox(null);
+    };
+    document.documentElement.classList.add("brw-picking");
+    document.addEventListener("pointermove", move, true);
+    document.addEventListener("click", choose, true);
+    return () => {
+      document.documentElement.classList.remove("brw-picking");
+      document.removeEventListener("pointermove", move, true);
+      document.removeEventListener("click", choose, true);
+    };
+  }, [selecting]);
+  useEffect(() => {
+    if (!drag) return;
+    const move = (event) => {
+      const width = Math.min(372, window.innerWidth - 28);
+      const nextLeft = Math.max(14, Math.min(window.innerWidth - width - 14, drag.left + event.clientX - drag.pointerX));
+      const nextTop = Math.max(14, Math.min(window.innerHeight - 160, drag.top + event.clientY - drag.pointerY));
+      setPosition({ left: nextLeft, top: nextTop });
+    };
+    const stop = () => setDrag(null);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop, { once: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+  }, [drag]);
+  function startDrag(event) {
+    if (event.target.closest("button")) return;
+    const panel = event.currentTarget.parentElement;
+    if (!panel) return;
+    const rect = panel.getBoundingClientRect();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setPosition({ left: rect.left, top: rect.top });
+    setDrag({ pointerX: event.clientX, pointerY: event.clientY, left: rect.left, top: rect.top });
+  }
+  async function submit(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    setStatus(null);
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title, description, severity, selector, pageUrl: window.location.href, userAgent: navigator.userAgent })
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Could not send the report.");
+      setTitle("");
+      setDescription("");
+      setSelector("");
+      setStatus({ message: "Sent to your team.", error: false });
+    } catch (error) {
+      setStatus({ message: error instanceof Error ? error.message : "Could not send the report.", error: true });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+  const panelStyle = position ? { left: position.left, top: position.top, right: "auto", bottom: "auto" } : {};
+  return /* @__PURE__ */ jsxs("div", { className: "brw-root", ref: rootRef, children: [
+    /* @__PURE__ */ jsx("style", { children: style }),
+    hoverBox && /* @__PURE__ */ jsx("div", { className: "brw-highlight", style: hoverBox, "aria-hidden": "true" }),
+    open && /* @__PURE__ */ jsxs("section", { className: "brw-panel", style: panelStyle, "aria-label": "Submit a bug report", children: [
+      /* @__PURE__ */ jsxs("div", { className: "brw-head", onPointerDown: startDrag, children: [
+        /* @__PURE__ */ jsx("strong", { children: productName }),
+        /* @__PURE__ */ jsx("button", { className: "brw-icon", type: "button", "aria-label": "Close bug report", onClick: () => setOpen(false), children: /* @__PURE__ */ jsx("svg", { width: "18", height: "18", viewBox: "0 0 18 18", fill: "none", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M4.5 4.5l9 9M13.5 4.5l-9 9", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round" }) }) })
+      ] }),
+      /* @__PURE__ */ jsxs("form", { className: "brw-form", onSubmit: submit, children: [
+        /* @__PURE__ */ jsxs("label", { className: "brw-label", children: [
+          "What happened?",
+          /* @__PURE__ */ jsx("input", { className: "brw-input", value: title, onChange: (event) => setTitle(event.target.value), minLength: 3, maxLength: 120, required: true, placeholder: "Write a short summary..." })
+        ] }),
+        /* @__PURE__ */ jsxs("label", { className: "brw-label", children: [
+          "Details",
+          /* @__PURE__ */ jsx("textarea", { className: "brw-textarea", value: description, onChange: (event) => setDescription(event.target.value), minLength: 10, maxLength: 4e3, required: true, placeholder: "What did you expect, and what happened instead?" })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "brw-row", children: [
+          /* @__PURE__ */ jsxs("label", { className: "brw-label", children: [
+            /* @__PURE__ */ jsxs("span", { style: { display: "flex", alignItems: "center", gap: 0 }, children: [
+              /* @__PURE__ */ jsx("span", { className: `brw-severity brw-severity-${severity}` }),
+              "Severity"
+            ] }),
+            /* @__PURE__ */ jsx("select", { className: "brw-select", value: severity, onChange: (event) => setSeverity(event.target.value), children: severityOptions.map((item) => /* @__PURE__ */ jsx("option", { value: item, children: item[0].toUpperCase() + item.slice(1) }, item)) })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "brw-label", children: [
+            "Affected element",
+            /* @__PURE__ */ jsxs("div", { className: "brw-selector", children: [
+              /* @__PURE__ */ jsx("code", { title: selector || "No element selected", children: selector || "None" }),
+              /* @__PURE__ */ jsx("button", { className: "brw-secondary", type: "button", onClick: () => {
+                setStatus(null);
+                setSelecting(true);
+              }, children: selecting ? "Click page" : "Select" })
+            ] })
+          ] })
+        ] }),
+        selecting && /* @__PURE__ */ jsx("button", { className: "brw-cancel", type: "button", onClick: () => setSelecting(false), children: "Cancel element selection" }),
+        status && /* @__PURE__ */ jsx("p", { className: "brw-status", "data-error": status.error, children: status.message }),
+        /* @__PURE__ */ jsx("button", { className: "brw-submit", type: "submit", disabled: submitting, children: submitting ? "Sending..." : "Send report" })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx("button", { className: "brw-launch", type: "button", "aria-label": "Report a bug", onClick: () => {
+      setOpen((value) => !value);
+      setStatus(null);
+    }, children: /* @__PURE__ */ jsx("span", { className: "brw-bug", "aria-hidden": "true", children: /* @__PURE__ */ jsxs("span", { className: "brw-bug-legs", children: [
+      /* @__PURE__ */ jsx("span", { className: "brw-bug-leg" }),
+      /* @__PURE__ */ jsx("span", { className: "brw-bug-leg" }),
+      /* @__PURE__ */ jsx("span", { className: "brw-bug-leg" }),
+      /* @__PURE__ */ jsx("span", { className: "brw-bug-leg" }),
+      /* @__PURE__ */ jsx("span", { className: "brw-bug-leg" }),
+      /* @__PURE__ */ jsx("span", { className: "brw-bug-leg" })
+    ] }) }) })
+  ] });
+}
+export {
+  BugReportWidget
+};
+//# sourceMappingURL=client.js.map
