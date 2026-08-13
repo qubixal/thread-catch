@@ -10,6 +10,8 @@ type BugReportHandlerOptions = {
     maxRequestsPerWindow?: number;
     /** Rate limit window in milliseconds. Default: 10 minutes. */
     rateLimitWindowMs?: number;
+    /** Extra terms blocked by the explicit-content filter, in addition to the built-in list. */
+    extraBlockedTerms?: string[];
     fetch?: typeof globalThis.fetch;
 };
 /**

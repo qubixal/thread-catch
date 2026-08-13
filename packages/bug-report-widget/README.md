@@ -32,6 +32,7 @@ Your bot must already be installed in the target server with:
 2. **Create Public Threads**
 3. **Send Messages**
 4. **Manage Threads**
+5. **Read Message History** (needed to scan archived posts for the next report number)
 
 The CLI only needs the bot token; it uses Discord's Gateway to discover the server rather than asking for a guild ID.
 
@@ -52,7 +53,8 @@ The widget defaults to `POST /api/bug-report`; override it with `<BugReportWidge
 - The generated route reads the bot token only from `process.env.DISCORD_BOT_TOKEN`. The widget has no token prop.
 - `.env.local` is added to `.gitignore`; the CLI does not print the token.
 - The server validates input, disables Discord mentions, limits report bodies, and has a conservative in-memory per-IP rate limit (5 reports per 10 minutes by default).
-- Every forum post is numbered from the largest existing number in the forum (`#0001 - Crash on login`, `#9999 - …`, `#10000 - …`), so each bug keeps a stable reference for tracking.
+- Every forum post is numbered from the largest existing number in the forum (`#0001 - Crash on login`, `#9999 - …`, `#10000 - …`), so each bug keeps a stable reference for tracking. Numbers are read from the start, end, or middle of existing post names, across active and archived posts.
+- Reports are screened against an explicit-content wordlist before they reach Discord; extra terms can be added with `extraBlockedTerms` on the handler. The filter is a heuristic, not a substitute for moderating the channel.
 
 The in-memory limit is intentionally dependency-free. For multi-instance deployments, place a platform rate limiter in front of the generated route.
 

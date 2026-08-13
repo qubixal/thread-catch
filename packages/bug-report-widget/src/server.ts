@@ -9,6 +9,8 @@ export type BugReportHandlerOptions = {
   maxRequestsPerWindow?: number;
   /** Rate limit window in milliseconds. Default: 10 minutes. */
   rateLimitWindowMs?: number;
+  /** Extra terms blocked by the explicit-content filter, in addition to the built-in list. */
+  extraBlockedTerms?: string[];
   fetch?: typeof globalThis.fetch;
 };
 
@@ -18,15 +20,41 @@ const reportsByIp = new Map<string, RateLimitEntry>();
 const MAX_BODY_BYTES = 16_000;
 const MAX_SCAN_PAGES = 20;
 
-const THREAD_NUMBER_PATTERN = /^#(\d+)(?:\s+-|$|\s)/;
+const DEFAULT_BLOCKED_TERMS = [
+  "porn", "pornhub", "xvideos", "xnxx", "hentai", "sex", "sexual", "sexy", "nude", "naked",
+  "tits", "boobs", "boobies", "pussy", "dick", "cock", "cunt", "fuck", "fucking", "shit",
+  "bitch", "slut", "whore", "rape", "molest", "gore", "snuff", "pedophile", "pedo", "zoophile"
+];
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildBlockedPattern(extraTerms: string[]) {
+  const terms = DEFAULT_BLOCKED_TERMS.concat(extraTerms.map((term) => escapeRegExp(term.trim())).filter((term) => term.length > 2));
+  return new RegExp(`\\b(?:${terms.join("|")})\\b`, "i");
+}
+
+function containsExplicitContent(text: string, pattern: RegExp) {
+  return pattern.test(text);
+}
+
+const THREAD_NUMBER_PATTERNS = [
+  /^\s*[#＃№]\s*(\d+)/,
+  /[#＃№]\s*(\d+)\s*\)?\s*$/,
+  /[#＃№]\s*(\d+)/
+];
 
 function formatThreadNumber(number: number) {
   return `#${String(number).padStart(4, "0")}`;
 }
 
 function threadNumberFromName(name: string) {
-  const match = THREAD_NUMBER_PATTERN.exec(name);
-  return match ? Number(match[1]) : null;
+  for (const pattern of THREAD_NUMBER_PATTERNS) {
+    const match = pattern.exec(name);
+    if (match) return Number(match[1]);
+  }
+  return null;
 }
 
 async function listThreadPages(token: string, forumChannelId: string, fetchImpl: typeof fetch, path: string) {
@@ -49,19 +77,22 @@ async function listThreadPages(token: string, forumChannelId: string, fetchImpl:
   return threads;
 }
 
-function latestThreadNumber(token: string, forumChannelId: string, fetchImpl: typeof fetch) {
-  return Promise.all([
-    listThreadPages(token, forumChannelId, fetchImpl, "active"),
-    listThreadPages(token, forumChannelId, fetchImpl, "archived/public"),
-    listThreadPages(token, forumChannelId, fetchImpl, "archived/private")
-  ]).then((lists) => {
-    let max = 0;
-    for (const list of lists) for (const thread of list) {
+const THREAD_LIST_CATEGORIES = ["active", "archived/public", "archived/private"] as const;
+
+async function latestThreadNumber(token: string, forumChannelId: string, fetchImpl: typeof fetch) {
+  const results = await Promise.allSettled(THREAD_LIST_CATEGORIES.map((path) => listThreadPages(token, forumChannelId, fetchImpl, path)));
+  let max = 0;
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error(`thread-catch: could not list ${THREAD_LIST_CATEGORIES[index]} threads: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`);
+      return;
+    }
+    for (const thread of result.value) {
       const number = threadNumberFromName(thread.name);
       if (number !== null && number > max) max = number;
     }
-    return max;
   });
+  return max;
 }
 
 function json(body: unknown, status: number) {
@@ -126,6 +157,7 @@ export function createDiscordBugReportHandler(options: BugReportHandlerOptions) 
   const tagIds = parseTags(options.tags);
   const maxRequests = options.maxRequestsPerWindow ?? 5;
   const windowMs = options.rateLimitWindowMs ?? 10 * 60 * 1_000;
+  const blockedPattern = buildBlockedPattern(options.extraBlockedTerms ?? []);
   let lastIssuedNumber = 0;
 
   if (!token || !forumChannelId) throw new Error("DISCORD_BOT_TOKEN and DISCORD_BUG_REPORT_FORUM_ID are required on the server.");
@@ -152,19 +184,16 @@ export function createDiscordBugReportHandler(options: BugReportHandlerOptions) 
     const selector = cleanText(input.selector, 0, 512) || undefined;
     const pageUrl = cleanText(input.pageUrl, 0, 2_000) || undefined;
     if (!title || !description || !isSeverity(input.severity)) return json({ error: "Title, details, and severity are required." }, 400);
+    if (containsExplicitContent(`${title}\n${description}`, blockedPattern)) return json({ error: "Report blocked by the content filter." }, 400);
 
     const severityName = `${input.severity[0].toUpperCase()}${input.severity.slice(1)}` as keyof DiscordTagIds;
     const appliedTags = [tagIds.Open, tagIds[severityName]].filter((tag): tag is string => Boolean(tag));
     const report: BugReportInput = { title, description, severity: input.severity, selector, pageUrl };
 
-    let threadNumber = 0;
-    try {
-      threadNumber = await latestThreadNumber(token, forumChannelId, fetchImpl);
-    } catch (error) {
-      console.error("thread-catch: could not read existing forum numbers", error);
-      threadNumber = 0;
+    const threadNumber = Math.max(await latestThreadNumber(token, forumChannelId, fetchImpl) + 1, lastIssuedNumber + 1);
+    if (threadNumber === 1) {
+      console.warn("thread-catch: no numbered forum posts found; posting #0001. If posts are numbered but archived, the bot needs the Read Message History permission to detect them.");
     }
-    threadNumber = Math.max(threadNumber + 1, lastIssuedNumber + 1);
     lastIssuedNumber = threadNumber;
     const numberedTitle = `${formatThreadNumber(threadNumber)} - ${title.replace(/^#\s*\d+\s*[-–—]?\s*/, "")}`;
 
