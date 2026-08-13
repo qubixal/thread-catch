@@ -21,8 +21,7 @@ const style = `
 .brw-launch{position:fixed;right:20px;bottom:20px;z-index:2147483000;width:48px;height:48px;border:0;border-radius:50%;background:#5865f2;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .15s}
 .brw-launch:hover{background:#4752c4;transform:scale(1.05)}.brw-launch:active{transform:scale(.97)}
 .brw-launch:focus-visible,.brw-panel button:focus-visible,.brw-panel input:focus-visible,.brw-panel textarea:focus-visible,.brw-panel select:focus-visible{outline:2px solid #5865f2;outline-offset:2px}
-.brw-bug{position:relative;width:22px;height:22px}.brw-bug::before{content:"";position:absolute;left:5px;top:2px;width:12px;height:14px;background:#fff;border-radius:6px 6px 4px 4px}.brw-bug::after{content:"";position:absolute;left:8px;top:0;width:6px;height:5px;background:#fff;border-radius:50%}
-.brw-bug-legs{position:absolute;top:4px;left:2px;width:18px;height:12px}.brw-bug-leg{position:absolute;width:5px;height:2px;background:#fff;border-radius:1px}.brw-bug-leg:nth-child(1){top:0;left:0;transform:rotate(-45deg)}.brw-bug-leg:nth-child(2){top:4px;left:-1px;transform:rotate(0deg)}.brw-bug-leg:nth-child(3){top:8px;left:0;transform:rotate(45deg)}.brw-bug-leg:nth-child(4){top:0;right:0;transform:rotate(45deg)}.brw-bug-leg:nth-child(5){top:4px;right:-1px;transform:rotate(0deg)}.brw-bug-leg:nth-child(6){top:8px;right:0;transform:rotate(-45deg)}
+.brw-bug{display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
 .brw-panel{position:fixed;right:20px;bottom:80px;z-index:2147483000;width:min(372px,calc(100vw - 28px));overflow:hidden;border:1px solid #3f4147;border-radius:8px;background:#2b2d31;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:brw-slideIn .2s ease-out}
 .brw-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:#1e1f22;border-bottom:2px solid #5865f2;cursor:grab;touch-action:none}.brw-head:active{cursor:grabbing}.brw-head strong{font-size:14px;font-weight:700;color:#f2f3f5}.brw-icon{width:28px;height:28px;border:0;border-radius:4px;background:transparent;color:#b5bac1;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s}.brw-icon:hover{color:#f2f3f5;background:rgba(255,255,255,.08)}
 .brw-form{display:grid;gap:11px;padding:14px}.brw-label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#b5bac1;text-transform:uppercase;letter-spacing:.3px}.brw-input,.brw-textarea,.brw-select{box-sizing:border-box;width:100%;border:1px solid #3f4147;border-radius:4px;background:#1e1f22;color:#dbdee1;font:inherit;font-size:14px;padding:8px 10px;transition:border-color .15s}.brw-input::placeholder,.brw-textarea::placeholder{color:#6d6f78}.brw-input:focus,.brw-textarea:focus,.brw-select:focus{border-color:#5865f2;outline:none;box-shadow:0 0 0 1px #5865f2}.brw-textarea{min-height:96px;resize:vertical}.brw-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -178,12 +177,24 @@ export function BugReportWidget({ endpoint = "/api/bug-report", productName = "B
         </section>
       )}
       <button className="brw-launch" type="button" aria-label="Report a bug" onClick={() => { setOpen((value) => !value); setStatus(null); }}>
-        <span className="brw-bug" aria-hidden="true">
-          <span className="brw-bug-legs">
-            <span className="brw-bug-leg" /><span className="brw-bug-leg" /><span className="brw-bug-leg" />
-            <span className="brw-bug-leg" /><span className="brw-bug-leg" /><span className="brw-bug-leg" />
-          </span>
-        </span>
+        <svg className="brw-bug" width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9.3 6.4C7.9 5 7 3.5 6.8 1.9" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M14.7 6.4C16.1 5 17 3.5 17.2 1.9" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M5.8 12.6C3.8 11.5 2.3 12 1.6 13.5" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M6.2 15.4C4.3 14.9 2.8 15.4 2.2 16.9" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M6.6 18.2C4.9 18.2 3.4 18.8 2.7 20" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M18.2 12.6C20.2 11.5 21.7 12 22.4 13.5" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M17.8 15.4C19.7 14.9 21.2 15.4 21.8 16.9" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M17.4 18.2C19.1 18.2 20.6 18.8 21.3 20" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="12" cy="5.8" r="2.8" fill="#0b0b0d" />
+          <ellipse cx="12" cy="14.6" rx="8" ry="6.6" fill="#ed4245" />
+          <path d="M12 8v13.2" stroke="#0b0b0d" strokeWidth="1.3" />
+          <circle cx="9.6" cy="12.4" r="1.3" fill="#0b0b0d" />
+          <circle cx="14.4" cy="12.4" r="1.3" fill="#0b0b0d" />
+          <circle cx="12" cy="17.6" r="1.3" fill="#0b0b0d" />
+          <circle cx="8.1" cy="16.4" r="1" fill="#0b0b0d" />
+          <circle cx="15.9" cy="16.4" r="1" fill="#0b0b0d" />
+        </svg>
       </button>
     </div>
   );

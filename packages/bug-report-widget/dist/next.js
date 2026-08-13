@@ -7,6 +7,48 @@ var severityOptions = ["low", "medium", "high", "critical"];
 // src/server.ts
 var reportsByIp = /* @__PURE__ */ new Map();
 var MAX_BODY_BYTES = 16e3;
+var MAX_SCAN_PAGES = 20;
+var THREAD_NUMBER_PATTERN = /^#(\d+)(?:\s+-|$|\s)/;
+function formatThreadNumber(number) {
+  return `#${String(number).padStart(4, "0")}`;
+}
+function threadNumberFromName(name) {
+  const match = THREAD_NUMBER_PATTERN.exec(name);
+  return match ? Number(match[1]) : null;
+}
+async function listThreadPages(token, forumChannelId, fetchImpl, path) {
+  const threads = [];
+  let before;
+  for (let page = 0; page < MAX_SCAN_PAGES; page += 1) {
+    const query = new URLSearchParams({ limit: "100" });
+    if (before) query.set("before", before);
+    const response = await fetchImpl(`https://discord.com/api/v10/channels/${encodeURIComponent(forumChannelId)}/threads/${path}?${query}`, {
+      headers: { Authorization: `Bot ${token}` }
+    });
+    if (!response.ok) throw new Error(`Discord list threads ${response.status}`);
+    const body = await response.json();
+    const batch = body.threads ?? [];
+    threads.push(...batch);
+    if (!batch.length || !body.has_more) break;
+    before = batch[batch.length - 1].archive_timestamp;
+    if (!before) break;
+  }
+  return threads;
+}
+function latestThreadNumber(token, forumChannelId, fetchImpl) {
+  return Promise.all([
+    listThreadPages(token, forumChannelId, fetchImpl, "active"),
+    listThreadPages(token, forumChannelId, fetchImpl, "archived/public"),
+    listThreadPages(token, forumChannelId, fetchImpl, "archived/private")
+  ]).then((lists) => {
+    let max = 0;
+    for (const list of lists) for (const thread of list) {
+      const number = threadNumberFromName(thread.name);
+      if (number !== null && number > max) max = number;
+    }
+    return max;
+  });
+}
 function json(body, status) {
   return Response.json(body, { status, headers: { "cache-control": "no-store" } });
 }
@@ -58,6 +100,7 @@ function createDiscordBugReportHandler(options) {
   const tagIds = parseTags(options.tags);
   const maxRequests = options.maxRequestsPerWindow ?? 5;
   const windowMs = options.rateLimitWindowMs ?? 10 * 60 * 1e3;
+  let lastIssuedNumber = 0;
   if (!token || !forumChannelId) throw new Error("DISCORD_BOT_TOKEN and DISCORD_BUG_REPORT_FORUM_ID are required on the server.");
   return async function handleBugReport(request) {
     if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
@@ -82,13 +125,23 @@ function createDiscordBugReportHandler(options) {
     const severityName = `${input.severity[0].toUpperCase()}${input.severity.slice(1)}`;
     const appliedTags = [tagIds.Open, tagIds[severityName]].filter((tag) => Boolean(tag));
     const report = { title, description, severity: input.severity, selector, pageUrl };
+    let threadNumber = 0;
+    try {
+      threadNumber = await latestThreadNumber(token, forumChannelId, fetchImpl);
+    } catch (error) {
+      console.error("thread-catch: could not read existing forum numbers", error);
+      threadNumber = 0;
+    }
+    threadNumber = Math.max(threadNumber + 1, lastIssuedNumber + 1);
+    lastIssuedNumber = threadNumber;
+    const numberedTitle = `${formatThreadNumber(threadNumber)} - ${title.replace(/^#\s*\d+\s*[-–—]?\s*/, "")}`;
     let response;
     try {
       response = await fetchImpl(`https://discord.com/api/v10/channels/${encodeURIComponent(forumChannelId)}/threads`, {
         method: "POST",
         headers: { Authorization: `Bot ${token}`, "content-type": "application/json" },
         body: JSON.stringify({
-          name: title,
+          name: numberedTitle,
           type: 11,
           auto_archive_duration: 1440,
           applied_tags: appliedTags,

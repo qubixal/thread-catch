@@ -52,6 +52,7 @@ The widget defaults to `POST /api/bug-report`; override it with `<BugReportWidge
 - The generated route reads the bot token only from `process.env.DISCORD_BOT_TOKEN`. The widget has no token prop.
 - `.env.local` is added to `.gitignore`; the CLI does not print the token.
 - The server validates input, disables Discord mentions, limits report bodies, and has a conservative in-memory per-IP rate limit (5 reports per 10 minutes by default).
+- Every forum post is numbered from the largest existing number in the forum (`#0001 - Crash on login`, `#9999 - …`, `#10000 - …`), so each bug keeps a stable reference for tracking.
 
 The in-memory limit is intentionally dependency-free. For multi-instance deployments, place a platform rate limiter in front of the generated route.
 
