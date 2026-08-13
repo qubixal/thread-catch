@@ -186,14 +186,14 @@ export function BugReportWidget({ endpoint = "/api/bug-report", productName = "B
           <path d="M18.2 12.6C20.2 11.5 21.7 12 22.4 13.5" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
           <path d="M17.8 15.4C19.7 14.9 21.2 15.4 21.8 16.9" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
           <path d="M17.4 18.2C19.1 18.2 20.6 18.8 21.3 20" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
-          <circle cx="12" cy="5.8" r="2.8" fill="#0b0b0d" />
-          <ellipse cx="12" cy="14.6" rx="8" ry="6.6" fill="#ed4245" />
-          <path d="M12 8v13.2" stroke="#0b0b0d" strokeWidth="1.3" />
-          <circle cx="9.6" cy="12.4" r="1.3" fill="#0b0b0d" />
-          <circle cx="14.4" cy="12.4" r="1.3" fill="#0b0b0d" />
-          <circle cx="12" cy="17.6" r="1.3" fill="#0b0b0d" />
-          <circle cx="8.1" cy="16.4" r="1" fill="#0b0b0d" />
-          <circle cx="15.9" cy="16.4" r="1" fill="#0b0b0d" />
+          <circle cx="12" cy="5.8" r="2.8" fill="#fff" />
+          <ellipse cx="12" cy="14.6" rx="8" ry="6.6" fill="#fff" />
+          <path d="M12 8v13.2" stroke="#5865f2" strokeWidth="1.3" />
+          <circle cx="9.6" cy="12.4" r="1.3" fill="#5865f2" />
+          <circle cx="14.4" cy="12.4" r="1.3" fill="#5865f2" />
+          <circle cx="12" cy="17.6" r="1.3" fill="#5865f2" />
+          <circle cx="8.1" cy="16.4" r="1" fill="#5865f2" />
+          <circle cx="15.9" cy="16.4" r="1" fill="#5865f2" />
         </svg>
       </button>
     </div>
